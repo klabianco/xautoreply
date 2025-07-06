@@ -1,0 +1,20 @@
+{
+  "name": "X AutoReply",
+  "version": "1.0",
+  "description": "Automatically opens reply windows on X (Twitter) using keyboard shortcuts",
+  "manifest_version": 3,
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://twitter.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_title": "X AutoReply"
+  }
+}
