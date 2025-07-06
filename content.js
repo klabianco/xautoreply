@@ -6,7 +6,7 @@ const config = {
   enabled: false,            // Extension starts disabled by default
   autoLoop: true,           // Whether to auto-loop after reply is complete
   delayBetweenActions: 800, // Milliseconds to wait between actions
-  autoReplyAfter: 1       // Milliseconds to wait after 'j' before pressing 'r'
+  autoReplyAfter: 100       // Milliseconds to wait after 'j' before pressing 'r'
 };
 
 // Global status
@@ -35,12 +35,12 @@ function createStatusIndicator() {
 // Main functionality: Press j then r
 function performJRSequence() {
   // First, simulate 'j' key
-  console.log('X AutoReply: Pressing j');
+  // Simulate j keypress
   simulateKeyPress('j');
   
   // After delay, simulate 'r' key
   setTimeout(() => {
-    console.log('X AutoReply: Pressing r');
+    // Simulate r keypress
     simulateKeyPress('r');
     // Auto-loop is always enabled, no need for continuation button
   }, config.autoReplyAfter);
@@ -121,12 +121,10 @@ function toggleExtension() {
   
   // Start process if enabled
   if (isRunning) {
-    console.log('X AutoReply: Triggering immediate J+R sequence');
+    // Trigger immediate J+R sequence
     
-    // Start the JR sequence with a minimal delay
-    setTimeout(() => {
-      performJRSequence();
-    }, 50);
+    // Start the JR sequence immediately without delay
+    performJRSequence();
     
     // Set up keyboard listeners
     setupKeyListeners();
@@ -148,7 +146,7 @@ function handleKeyDown(e) {
   
   // Check for Enter key which might indicate reply sent
   if (e.key === 'Enter') {
-    console.log('X AutoReply: Enter key detected');
+
     
     // Only respond to Enter if we're likely in a reply box (focused on textarea or similar)
     const activeElement = document.activeElement;
@@ -160,15 +158,15 @@ function handleKeyDown(e) {
     );
     
     if (isInInput) {
-      console.log('X AutoReply: Enter key in text input - likely sending reply');
+
       
       // Setup modal detection to trigger next cycle when dialog disappears
       setTimeout(() => {
         if (!setupModalObserver()) {
           // Fallback to timer if modal detection fails
-          console.log('X AutoReply: Using fallback timer method for Enter key');
+
           setTimeout(() => {
-            console.log('X AutoReply: Auto-continuing after Enter key (fallback)');
+
             performJRSequence();
           }, config.delayBetweenActions);
         }
@@ -179,18 +177,18 @@ function handleKeyDown(e) {
 
 // Setup modal disappearance detection
 function setupModalObserver() {
-  console.log('X AutoReply: Setting up modal observer');
+
   
   // Find all dialog elements that might be reply modals
   const dialogs = document.querySelectorAll('[role="dialog"]');
   if (dialogs.length === 0) {
-    console.log('X AutoReply: No modal dialogs found');
+
     return false;
   }
   
   // Find the most likely reply dialog (usually the last one)
   const replyDialog = dialogs[dialogs.length - 1];
-  console.log('X AutoReply: Found modal dialog:', replyDialog);
+
   
   // Create a mutation observer to watch for dialog removal
   const observer = new MutationObserver((mutations, obs) => {
@@ -199,7 +197,7 @@ function setupModalObserver() {
         replyDialog.style.display === 'none' || 
         replyDialog.getAttribute('aria-hidden') === 'true') {
       
-      console.log('X AutoReply: Dialog disappeared, triggering next cycle');
+
       obs.disconnect(); // Stop observing since dialog is gone
       
       // Trigger next J+R sequence (auto-loop is always enabled)
@@ -216,7 +214,7 @@ function setupModalObserver() {
   }
   observer.observe(document.body, { childList: true, subtree: false });
   
-  console.log('X AutoReply: Modal observer setup complete');
+
   return true;
 }
 
@@ -228,8 +226,14 @@ function handleClick(e) {
   function isReplyOrTweetButton(element) {
     if (!element) return false;
     
+    // Skip disabled buttons
+    if (element.getAttribute('aria-disabled') === 'true' || element.hasAttribute('disabled')) {
+      return false;
+    }
+    
     // Check for common button attributes
     if (element.getAttribute('data-testid') === 'tweetButton') return true;
+    if (element.getAttribute('data-testid') === 'tweetButtonInline') return true;
     if (element.getAttribute('aria-label') === 'Reply') return true;
     
     // Check text content
@@ -248,15 +252,15 @@ function handleClick(e) {
   
   // Check if the clicked element is a reply button
   if (isReplyOrTweetButton(e.target)) {
-    console.log('X AutoReply: Reply/Tweet button detected');
+
     
     // Setup modal detection to trigger next cycle when dialog disappears
     setTimeout(() => {
       if (!setupModalObserver()) {
         // Fallback to timer if modal detection fails
-        console.log('X AutoReply: Using fallback timer method');
+
         setTimeout(() => {
-          console.log('X AutoReply: Auto-continuing (fallback)');
+
           performJRSequence();
         }, config.delayBetweenActions);
       }
@@ -266,12 +270,12 @@ function handleClick(e) {
 
 // Simulate a keyboard key press (more reliable version)
 function simulateKeyPress(key) {
-  console.log(`X AutoReply: Simulating "${key}" key press`);
+
   
-  // Get the keyCode for the key
+  // Convert key to keyCode
   const keyCode = key.charCodeAt(0);
   
-  // Create all necessary keyboard events with complete properties
+  // Create keyboard events
   const keyDownEvent = new KeyboardEvent('keydown', {
     key: key,
     code: `Key${key.toUpperCase()}`,
@@ -308,35 +312,27 @@ function simulateKeyPress(key) {
     view: window
   });
   
-  // Define all possible targets to dispatch the events
-  const targets = [
-    document,                      // Document level
-    document.body,                 // Body level
-    document.documentElement,      // HTML level
-    document.activeElement,        // Currently focused element
-    document.querySelector('main'), // Main content area
-    document.querySelector('[role="main"]'),
-    document.querySelector('[data-testid="primaryColumn"]')
-  ];
+  // Log what element is currently active for debugging purposes
+
   
-  // Dispatch events to all valid targets
-  targets.forEach(target => {
-    if (target) {
-      try {
-        // Fire the complete keyboard event sequence
-        target.dispatchEvent(keyDownEvent);
-        target.dispatchEvent(keyPressEvent);
-        target.dispatchEvent(keyUpEvent);
-      } catch(e) {
-        console.error('Error dispatching event:', e);
-      }
-    }
-  });
+  // Only use document as target since it's most consistent
+  try {
+
+    // Fire the complete keyboard event sequence on document level only
+    const downResult = document.dispatchEvent(keyDownEvent);
+    const pressResult = document.dispatchEvent(keyPressEvent);
+    const upResult = document.dispatchEvent(keyUpEvent);
+
+  } catch(e) {
+
+  }
+  
+
 }
 
 // Initialize the extension
 function initialize() {
-  console.log('X AutoReply: Initializing');
+
   const status = createStatusIndicator();
   const toggleBtn = addToggleButton();
   
