@@ -6,7 +6,7 @@ const config = {
   enabled: false,            // Extension starts disabled by default
   autoLoop: true,           // Whether to auto-loop after reply is complete
   delayBetweenActions: 800, // Milliseconds to wait between actions
-  autoReplyAfter: 200       // Milliseconds to wait after 'j' before pressing 'r'
+  autoReplyAfter: 1       // Milliseconds to wait after 'j' before pressing 'r'
 };
 
 // Global status
@@ -42,86 +42,14 @@ function performJRSequence() {
   setTimeout(() => {
     console.log('X AutoReply: Pressing r');
     simulateKeyPress('r');
-    
-    // Add manual continuation button if autoLoop is disabled
-    if (!config.autoLoop) {
-      addContinueButton();
-    }
+    // Auto-loop is always enabled, no need for continuation button
   }, config.autoReplyAfter);
 }
 
-// Alternate method to trigger keyboard shortcuts using DOM events
-// This is a fallback method that might work better in some cases
-function triggerShortcutDirectly() {
-  console.log('X AutoReply: Directly triggering shortcuts');
-  
-  // Try to trigger j shortcut
-  const jEvent = new KeyboardEvent('keydown', {
-    bubbles: true,
-    cancelable: true,
-    key: 'j',
-    code: 'KeyJ',
-    keyCode: 74,
-    which: 74,
-    shiftKey: false,
-    ctrlKey: false,
-    metaKey: false
-  });
-  
-  // Dispatch j event
-  document.dispatchEvent(jEvent);
-  
-  // After a minimal delay, trigger r shortcut
-  setTimeout(() => {
-    const rEvent = new KeyboardEvent('keydown', {
-      bubbles: true,
-      cancelable: true,
-      key: 'r',
-      code: 'KeyR',
-      keyCode: 82,
-      which: 82,
-      shiftKey: false,
-      ctrlKey: false,
-      metaKey: false
-    });
-    
-    // Dispatch r event
-    document.dispatchEvent(rEvent);
-  }, 100);
-}
+// Main functionality is now handled by performJRSequence
 
 // Add a visible continue button to manually trigger next sequence
-function addContinueButton() {
-  // Remove any existing button
-  const existingBtn = document.getElementById('x-autoreply-continue');
-  if (existingBtn) {
-    existingBtn.remove();
-  }
-  
-  // Create new continue button
-  const btn = document.createElement('button');
-  btn.id = 'x-autoreply-continue';
-  btn.textContent = 'Continue JR';
-  btn.style.position = 'fixed';
-  btn.style.top = '40px';
-  btn.style.right = '10px';
-  btn.style.backgroundColor = '#1DA1F2';
-  btn.style.color = 'white';
-  btn.style.border = 'none';
-  btn.style.padding = '5px 10px';
-  btn.style.borderRadius = '4px';
-  btn.style.zIndex = '10000';
-  btn.style.cursor = 'pointer';
-  btn.style.fontWeight = 'bold';
-  
-  // Add click event
-  btn.addEventListener('click', () => {
-    btn.remove();
-    setTimeout(performJRSequence, 100);
-  });
-  
-  document.body.appendChild(btn);
-}
+// Continue button removed as auto-loop is always enabled
 
 // Add a visible toggle button
 function addToggleButton() {
@@ -146,46 +74,7 @@ function addToggleButton() {
 }
 
 // Add auto-continue checkbox
-function addAutoLoopCheckbox() {
-  const container = document.createElement('div');
-  container.id = 'x-autoreply-autoloop';
-  container.style.position = 'fixed';
-  container.style.bottom = '50px';
-  container.style.right = '10px';
-  container.style.backgroundColor = 'rgba(255,255,255,0.9)';
-  container.style.padding = '5px';
-  container.style.borderRadius = '4px';
-  container.style.zIndex = '10000';
-  
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.id = 'x-autoreply-autoloop-check';
-  checkbox.checked = config.autoLoop;
-  
-  const label = document.createElement('label');
-  label.htmlFor = 'x-autoreply-autoloop-check';
-  label.textContent = 'Auto-loop';
-  label.style.marginLeft = '5px';
-  label.style.fontSize = '12px';
-  
-  checkbox.addEventListener('change', (e) => {
-    config.autoLoop = e.target.checked;
-    showNotification(`Auto-loop: ${config.autoLoop ? 'ON' : 'OFF'}`);
-    
-    // If auto-loop is turned on and we're running, trigger JR sequence
-    if (config.autoLoop && isRunning) {
-      setTimeout(performJRSequence, 500);
-    }
-    // If turning off auto-loop and we're running, add continue button
-    else if (!config.autoLoop && isRunning) {
-      addContinueButton();
-    }
-  });
-  
-  container.appendChild(checkbox);
-  container.appendChild(label);
-  document.body.appendChild(container);
-}
+// Auto-loop is always on by default
 
 // Show notification message
 function showNotification(message) {
@@ -234,15 +123,9 @@ function toggleExtension() {
   if (isRunning) {
     console.log('X AutoReply: Triggering immediate J+R sequence');
     
-    // Try both methods for maximum compatibility with minimal delay
+    // Start the JR sequence with a minimal delay
     setTimeout(() => {
-      // Try direct shortcut method first
-      triggerShortcutDirectly();
-      
-      // Also try the simulation method as backup
-      setTimeout(() => {
-        performJRSequence();
-      }, 300);
+      performJRSequence();
     }, 50);
     
     // Set up keyboard listeners
@@ -285,13 +168,8 @@ function handleKeyDown(e) {
           // Fallback to timer if modal detection fails
           console.log('X AutoReply: Using fallback timer method for Enter key');
           setTimeout(() => {
-            if (config.autoLoop) {
-              console.log('X AutoReply: Auto-continuing after Enter key (fallback)');
-              performJRSequence();
-            } else {
-              console.log('X AutoReply: Manual mode - showing continue button');
-              addContinueButton();
-            }
+            console.log('X AutoReply: Auto-continuing after Enter key (fallback)');
+            performJRSequence();
           }, config.delayBetweenActions);
         }
       }, 200); // Short delay to ensure dialog is visible
@@ -324,11 +202,9 @@ function setupModalObserver() {
       console.log('X AutoReply: Dialog disappeared, triggering next cycle');
       obs.disconnect(); // Stop observing since dialog is gone
       
-      // Trigger next J+R sequence if auto-loop enabled
-      if (config.autoLoop && isRunning) {
+      // Trigger next J+R sequence (auto-loop is always enabled)
+      if (isRunning) {
         setTimeout(performJRSequence, 100); // Small delay for UI to update
-      } else if (isRunning) {
-        addContinueButton();
       }
     }
   });
@@ -380,12 +256,8 @@ function handleClick(e) {
         // Fallback to timer if modal detection fails
         console.log('X AutoReply: Using fallback timer method');
         setTimeout(() => {
-          if (config.autoLoop) {
-            console.log('X AutoReply: Auto-continuing (fallback)');
-            performJRSequence();
-          } else {
-            addContinueButton();
-          }
+          console.log('X AutoReply: Auto-continuing (fallback)');
+          performJRSequence();
         }, config.delayBetweenActions);
       }
     }, 200); // Short delay to ensure dialog is visible
@@ -460,14 +332,6 @@ function simulateKeyPress(key) {
       }
     }
   });
-  
-  // Attempt to directly trigger keyboard handlers that might be listening for these keys
-  if (key === 'j') {
-    // Try to scroll to next item (what 'j' usually does)
-    try {
-      window.scrollBy(0, 50);
-    } catch (e) { console.error(e); }
-  }
 }
 
 // Initialize the extension
@@ -475,7 +339,6 @@ function initialize() {
   console.log('X AutoReply: Initializing');
   const status = createStatusIndicator();
   const toggleBtn = addToggleButton();
-  addAutoLoopCheckbox();
   
   // Add keyboard shortcut (Ctrl+Shift+A) to toggle
   document.addEventListener('keydown', (e) => {
